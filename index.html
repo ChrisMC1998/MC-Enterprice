@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -2131,11 +2132,15 @@
             <div class="card-header"><span class="card-title">Add Expense</span></div>
             <div class="form-grid">
               <div class="form-group"><label>Expense Type</label>
-                <select id="exp-type"><option>Rent</option><option>Salary</option><option>Electricity</option><option>Fuel</option><option>Transport</option><option>Food</option><option>Packaging</option><option>Maintenance</option><option>Others</option></select>
+                <select id="exp-type" onchange="toggleSpoilageFields()"><option>Rent</option><option>Salary</option><option>Electricity</option><option>Fuel</option><option>Transport</option><option>Food</option><option>Packaging</option><option>Spoilage</option><option>Maintenance</option><option>Others</option></select>
               </div>
               <div class="form-group"><label>Date</label><input type="date" id="exp-date"></div>
               <div class="form-group"><label>Amount (₹)</label><input type="number" id="exp-amount" placeholder="0.00"></div>
               <div class="form-group"><label>Paid To</label><input type="text" id="exp-paidto" placeholder="Name / Vendor"></div>
+              <div class="form-group" id="exp-spoil-product-wrap" style="display:none"><label>Product (dead / spoiled stock)</label>
+                <select id="exp-spoil-product" onchange="document.getElementById('exp-spoil-qty')?.focus()"><option value="">Select product…</option></select>
+              </div>
+              <div class="form-group" id="exp-spoil-qty-wrap" style="display:none"><label>Qty Spoiled / Dead</label><input type="number" id="exp-spoil-qty" min="1" step="1" placeholder="e.g. 5"></div>
               <div class="form-group full"><label>Remarks</label><input type="text" id="exp-remarks" placeholder="Optional note"></div>
             </div>
             <div class="form-actions">
@@ -2242,7 +2247,7 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title" id="bh-name">— Purchase History</span>
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg> Export</button>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="exportBuyerHistory()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg> Export</button>
           </div>
           <div class="search-bar">
             <input class="search-input" id="bh-search" placeholder="Search by invoice, product, date…" oninput="filterBuyerHistory()">
@@ -2445,20 +2450,20 @@
           <div class="card">
             <div class="card-header"><span class="card-title">Business Settings</span></div>
             <div class="form-grid">
-              <div class="form-group full"><label>Business Name</label><input type="text" value="MC Aqua World"></div>
-              <div class="form-group full"><label>Address</label><textarea>No.12, Marina Beach Road, Chennai – 600 001</textarea></div>
+              <div class="form-group full"><label>Business Name</label><input type="text" id="biz-name" value="MC Aqua World"></div>
+              <div class="form-group full"><label>Address</label><textarea id="biz-address">No.12, Marina Beach Road, Chennai – 600 001</textarea></div>
               <div class="form-group"><label>State</label><select id="bizStateSelect" class="state-select" onchange="setBusinessState(this.value)"><option value="">Select state</option></select></div>
-              <div class="form-group"><label>GST Number</label><input type="text" value="33ABCDE1234F1Z5"></div>
-              <div class="form-group"><label>Phone</label><input type="text" value="+91 98765 43210"></div>
-              <div class="form-group"><label>Invoice Prefix</label><input type="text" value="INV-"></div>
-              <div class="form-group"><label>Next Invoice No</label><input type="number" value="143"></div>
-              <div class="form-group"><label>Currency</label><select><option>₹ INR</option><option>$ USD</option></select></div>
-              <div class="form-group"><label>Default GST %</label><select><option>5%</option><option>12%</option><option>18%</option><option>0%</option></select></div>
-              <div class="form-group"><label>Theme</label><select><option>Dark (Default)</option><option>Light</option></select></div>
+              <div class="form-group"><label>GST Number</label><input type="text" id="biz-gstnum" value="33ABCDE1234F1Z5"></div>
+              <div class="form-group"><label>Phone</label><input type="text" id="biz-phone" value="+91 98765 43210"></div>
+              <div class="form-group"><label>Invoice Prefix</label><input type="text" id="biz-invprefix" value="INV-"></div>
+              <div class="form-group"><label>Next Invoice No</label><input type="number" id="biz-nextinv" value="143"></div>
+              <div class="form-group"><label>Currency</label><select id="biz-currency"><option>₹ INR</option><option>$ USD</option></select></div>
+              <div class="form-group"><label>Default GST %</label><select id="biz-defaultgst"><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option><option value="0">0%</option></select></div>
+              <div class="form-group"><label>Theme</label><select id="biz-theme"><option value="dark">Dark (Default)</option><option value="light">Light</option></select></div>
               <div class="form-group"><label>Payment Methods</label><select><option>All</option></select></div>
             </div>
             <div class="form-actions">
-              <button class="btn btn-primary" onclick="showToast('Settings saved!', 'success')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg> Save Settings</button>
+              <button class="btn btn-primary" onclick="saveBusinessSettings()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg> Save Settings</button>
             </div>
           </div>
         </div>
@@ -2469,14 +2474,21 @@
         <div class="chart-grid">
 
           <div class="card">
-            <div class="card-header"><span class="card-title">User Roles</span></div>
+            <div class="card-header"><span class="card-title">User Roles & Permissions</span></div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+              <div style="font-size:11.5px;color:var(--text2);line-height:1.5">
+                <strong style="color:var(--text)">Not implemented yet.</strong> This app runs entirely in one browser's local storage — there's no login system, no separate user accounts, and nothing anywhere in the app checks a role before allowing an action. Everyone who opens this device has full access to everything, regardless of what's shown below.
+                <br>The roles below are a planning reference for a future multi-user version (which would need a real backend to enforce them) — not a working feature.
+              </div>
+            </div>
             <table>
-              <thead><tr><th>Role</th><th>Permissions</th><th>Status</th></tr></thead>
+              <thead><tr><th>Planned Role</th><th>Intended Permissions</th><th>Status</th></tr></thead>
               <tbody>
-                <tr><td><strong>Admin</strong></td><td style="font-size:11px;color:var(--text2)">Full Access</td><td><span class="badge ok">Active</span></td></tr>
-                <tr><td><strong>Manager</strong></td><td style="font-size:11px;color:var(--text2)">Sales, Reports, Inventory</td><td><span class="badge ok">Active</span></td></tr>
-                <tr><td><strong>Staff</strong></td><td style="font-size:11px;color:var(--text2)">Sales Entry Only</td><td><span class="badge pending">Inactive</span></td></tr>
-                <tr><td><strong>Cashier</strong></td><td style="font-size:11px;color:var(--text2)">Billing Only</td><td><span class="badge pending">Inactive</span></td></tr>
+                <tr><td><strong>Admin</strong></td><td style="font-size:11px;color:var(--text2)">Full Access</td><td><span class="badge pending">Not built</span></td></tr>
+                <tr><td><strong>Manager</strong></td><td style="font-size:11px;color:var(--text2)">Sales, Reports, Inventory</td><td><span class="badge pending">Not built</span></td></tr>
+                <tr><td><strong>Staff</strong></td><td style="font-size:11px;color:var(--text2)">Sales Entry Only</td><td><span class="badge pending">Not built</span></td></tr>
+                <tr><td><strong>Cashier</strong></td><td style="font-size:11px;color:var(--text2)">Billing Only</td><td><span class="badge pending">Not built</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -3357,6 +3369,95 @@ function setBusinessState(state) {
   localStorage.setItem('erp_business_state', state || '');
 }
 
+// ── BUSINESS SETTINGS (Profile tab) ────────────────────────────────────
+// Everything on this tab except State used to be decorative — the inputs
+// had no ids, nothing read them back, and "Save Settings" just fired a
+// toast. This is the page a new customer sets up first, so it needs to
+// actually stick.
+const BIZ_SETTINGS_DEFAULTS = {
+  name: 'MC Aqua World',
+  address: 'No.12, Marina Beach Road, Chennai – 600 001',
+  gstNumber: '33ABCDE1234F1Z5',
+  phone: '+91 98765 43210',
+  invoicePrefix: 'INV-',
+  nextInvoiceNo: 143,
+  currency: '₹ INR',
+  defaultGst: '5',
+  theme: 'dark'
+};
+
+function getBusinessSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('erp_settings') || 'null');
+    return { ...BIZ_SETTINGS_DEFAULTS, ...(saved || {}) };
+  } catch { return { ...BIZ_SETTINGS_DEFAULTS }; }
+}
+
+// Populates the Profile tab's fields from saved settings (or the
+// defaults, for a brand-new install). Called on load and whenever the
+// Settings > Profile tab is opened, so it always reflects what's saved
+// rather than whatever static `value=""` happened to be in the HTML.
+function loadBusinessSettings() {
+  const s = getBusinessSettings();
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setVal('biz-name', s.name);
+  setVal('biz-address', s.address);
+  setVal('biz-gstnum', s.gstNumber);
+  setVal('biz-phone', s.phone);
+  setVal('biz-invprefix', s.invoicePrefix);
+  setVal('biz-nextinv', s.nextInvoiceNo);
+  setVal('biz-currency', s.currency);
+  setVal('biz-defaultgst', s.defaultGst);
+  setVal('biz-theme', s.theme);
+}
+
+function saveBusinessSettings() {
+  const getVal = (id, fallback) => { const el = document.getElementById(id); return el ? el.value : fallback; };
+
+  const name          = getVal('biz-name', BIZ_SETTINGS_DEFAULTS.name).trim();
+  const address        = getVal('biz-address', BIZ_SETTINGS_DEFAULTS.address).trim();
+  const gstNumber       = getVal('biz-gstnum', BIZ_SETTINGS_DEFAULTS.gstNumber).trim();
+  const phone           = getVal('biz-phone', BIZ_SETTINGS_DEFAULTS.phone).trim();
+  const invoicePrefix   = (getVal('biz-invprefix', BIZ_SETTINGS_DEFAULTS.invoicePrefix).trim()) || 'INV-';
+  const nextInvoiceNo   = parseInt(getVal('biz-nextinv', BIZ_SETTINGS_DEFAULTS.nextInvoiceNo)) || BIZ_SETTINGS_DEFAULTS.nextInvoiceNo;
+  const currency        = getVal('biz-currency', BIZ_SETTINGS_DEFAULTS.currency);
+  const defaultGst      = getVal('biz-defaultgst', BIZ_SETTINGS_DEFAULTS.defaultGst);
+  const theme           = getVal('biz-theme', BIZ_SETTINGS_DEFAULTS.theme);
+
+  if (!name) { showToast('Business Name is required.', 'warning'); return; }
+
+  const settings = { name, address, gstNumber, phone, invoicePrefix, nextInvoiceNo, currency, defaultGst, theme };
+  localStorage.setItem('erp_settings', JSON.stringify(settings));
+
+  // Apply immediately, rather than only taking effect after a refresh:
+
+  // 1. Theme — reuse the same single source of truth as the topbar toggle.
+  const isLight = theme === 'light';
+  document.body.classList.toggle('light', isLight);
+  localStorage.setItem('erp-theme', isLight ? 'light' : 'dark');
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) themeBtn.innerHTML = isLight ? icon('sun', 16) : icon('moon', 16);
+
+  // 2. Business identity — feeds the invoice header (company/address/GST/phone)
+  // for any invoice generated from now on.
+  try {
+    invData.company = name;
+    invData.address = address;
+    invData.gstp = `GST: ${gstNumber} | Ph: ${phone}`;
+    localStorage.setItem('erp_invoice', JSON.stringify(invData));
+  } catch {}
+
+  // 3. Default GST% — used to prefill the GST field on a fresh Purchase form.
+  const pGst = document.getElementById('p-gst');
+  if (pGst && document.activeElement !== pGst) pGst.value = defaultGst;
+
+  if (currency !== '₹ INR') {
+    showToast('Settings saved! Note: switching to ' + currency + ' updates this setting, but amounts across the app are still shown in ₹ — full currency conversion isn\'t wired up yet.', 'info');
+  } else {
+    showToast('Settings saved!', 'success');
+  }
+}
+
 // Fills every <select class="state-select"> with the Indian states list
 // (kept out of static HTML so there's one source of truth for the list),
 // then restores the saved business state on the Settings dropdown.
@@ -3372,6 +3473,7 @@ function populateStateSelects() {
   });
   const bizSel = document.getElementById('bizStateSelect');
   if (bizSel) bizSel.value = getBusinessState();
+  loadBusinessSettings();
 }
 document.addEventListener('DOMContentLoaded', populateStateSelects);
 
@@ -3401,9 +3503,12 @@ runIdMigrations();
 // same alpha prefix and taking the highest numeric suffix + 1.
 function getNextInvoiceNumber() {
   const txns = getTable('erp_transactions', []);
-  let prefix = 'INV-';
+  const settings = getBusinessSettings();
+  let prefix = settings.invoicePrefix || 'INV-';
   let width = 4;
-  let maxNum = 142; // so a brand-new install still starts at INV-0143
+  // Seed from the saved "Next Invoice No" so a fresh install (or one that
+  // just changed its numbering in Settings) starts there, not at 143.
+  let maxNum = (parseInt(settings.nextInvoiceNo) || 143) - 1;
   txns.forEach(t => {
     if (t.type !== 'Sale' || !t.invno) return;
     const m = String(t.invno).match(/^(\D*)(\d+)$/);
@@ -3967,10 +4072,12 @@ function resetPurchaseForm() {
   });
   const dateEl = document.getElementById('p-date');
   if (dateEl) dateEl.value = today;
-  ['p-supplier','p-category','p-unit','p-gst','p-paystatus'].forEach(id => {
+  ['p-supplier','p-category','p-unit','p-paystatus'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.selectedIndex = 0;
   });
+  const gstEl = document.getElementById('p-gst');
+  if (gstEl) gstEl.value = getBusinessSettings().defaultGst;
   showToast('Purchase form cleared.', 'info');
 }
 
@@ -4893,6 +5000,42 @@ function filterBuyerHistory() {
   });
 }
 
+// Exports whatever's currently visible in the Buyer History list (i.e.
+// respects the active search/status filter) as a CSV — the button
+// previously had no click handler at all.
+function exportBuyerHistory() {
+  const name = document.getElementById('bh-name')?.textContent.replace(' — Purchase History', '').trim() || '';
+  if (!name || name === '—') { showToast('Select a customer first.', 'warning'); return; }
+
+  const rows = [...document.querySelectorAll('#bh-list .bh-entry')].filter(el => el.style.display !== 'none');
+  if (rows.length === 0) { showToast('No purchase history to export.', 'warning'); return; }
+
+  const csvRows = [['Invoice', 'Date', 'Items', 'Amount', 'Status']];
+  rows.forEach(entry => {
+    const headerRow = entry.children[0];          // id + date on the left, status badge on the right
+    const idDateWrap = headerRow?.children[0];
+    const inv = idDateWrap?.children[0]?.textContent.trim() || '';
+    const dateText = (idDateWrap?.children[1]?.textContent || '').replace(/^\s*—\s*/, '').trim();
+    const status = headerRow?.querySelector('.badge')?.textContent.trim() || '';
+
+    const items = entry.children[1]?.textContent.trim() || '';
+
+    const amountRow = entry.children[2];           // amount on the left, "Download Invoice" link on the right
+    const amount = amountRow?.children[0]?.textContent.trim() || '';
+
+    csvRows.push([inv, dateText, items, amount, status]);
+  });
+
+  const csv = csvRows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'buyer_history_' + name.replace(/[^a-z0-9]+/gi, '_').toLowerCase() + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Exported ' + rows.length + ' order' + (rows.length !== 1 ? 's' : '') + ' for ' + name, 'success');
+}
+
 // STOCK LEDGER SEARCH/FILTER
 // ── STOCK LEDGER ───────────────────────────────────────────────────────
 // The ledger is built from erp_inventory (product list) and
@@ -4946,11 +5089,19 @@ function getLedgerMovements(productName) {
     });
   } catch {}
 
-  // Pull spoilage from expenses
+  // Pull spoilage from expenses. Newer entries carry explicit product/qty
+  // fields (set when the expense is saved via the Spoilage type); older
+  // entries only had a free-text description, so fall back to matching
+  // that with a qty of -1 for those legacy rows.
   try {
     const expenses = getTable('erp_expenses', []);
     expenses.forEach(e => {
-      if (e.category === 'Spoilage' && (e.description || '').toLowerCase().includes(productName.toLowerCase())) {
+      if (e.category !== 'Spoilage') return;
+      if (e.product) {
+        if (e.product.toLowerCase() === productName.toLowerCase()) {
+          movements.push({ date: e.date, type:'Spoilage', label:`Spoilage – ${e.description || e.product}`, qty: -Math.abs(parseInt(e.qty) || 0) });
+        }
+      } else if ((e.description || '').toLowerCase().includes(productName.toLowerCase())) {
         movements.push({ date: e.date, type:'Spoilage', label:`Spoilage – ${e.description}`, qty: -1 });
       }
     });
@@ -5333,10 +5484,12 @@ function exportInventory() {
 // ══════════════════════════════════════════════
 
 // Central invoice data store (persisted to localStorage)
-let invData = JSON.parse(localStorage.getItem('erp_invoice') || 'null') || {
-  company: 'MC Aqua World',
-  address: 'No.12, Marina Beach Road, Chennai – 600 001',
-  gstp: 'GST: 33ABCDE1234F1Z5 | Ph: +91 98765 43210',
+let invData = JSON.parse(localStorage.getItem('erp_invoice') || 'null') || (() => {
+  const s = getBusinessSettings();
+  return {
+  company: s.name,
+  address: s.address,
+  gstp: `GST: ${s.gstNumber} | Ph: ${s.phone}`,
   invno: 'INV-0142',
   date: '2026-06-25',
   due: '2026-07-25',
@@ -5353,7 +5506,8 @@ let invData = JSON.parse(localStorage.getItem('erp_invoice') || 'null') || {
     { product: 'Premium Fish Food (200g)', qty: 2, rate: 220, disc: 0, gst: 5 },
     { product: 'Aquatic Plant (Set)', qty: 1, rate: 180, disc: 0, gst: 0 },
   ]
-};
+  };
+})();
 
 function invCalc(items) {
   let subtotal = 0, totalGST = 0, totalDisc = 0;
@@ -6955,6 +7109,103 @@ function generateReport() {
     tbody.innerHTML = inv.length ? inv.map(p => `<tr><td><strong>${p.product}</strong></td><td style="font-family:monospace;color:var(--text3)">${p.sku||''}</td><td>${p.category||''}</td><td style="font-family:monospace">${p.stock||0}</td><td style="font-family:monospace">₹${(p.buyPrice||0).toLocaleString('en-IN')}</td><td style="font-family:monospace;color:var(--green)">₹${(p.sellPrice||0).toLocaleString('en-IN')}</td><td><span class="badge ${p.status==='OK'?'paid':p.status==='Low'?'pending':'overdue'}">${p.status||''}</span></td></tr>`).join('')
       : '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">No inventory data.</td></tr>';
 
+  } else if (type === 'Customer Report') {
+    const txns = getTable('erp_transactions', []).filter(t => t.type === 'Sale' && inRange(t.date));
+    const custMaster = getTable('erp_customers', []);
+    const byCust = {};
+    txns.forEach(t => {
+      const name = t.customer || 'Unknown';
+      if (!byCust[name]) byCust[name] = { name, total: 0, pending: 0, count: 0 };
+      byCust[name].total += parseFloat(t.amount || 0);
+      byCust[name].count += 1;
+      if (['Pending', 'Partial', 'Overdue'].includes(t.status)) byCust[name].pending += parseFloat(t.balance ?? t.amount ?? 0);
+    });
+    const rows = Object.values(byCust).sort((a, b) => b.total - a.total);
+    const totalSales = rows.reduce((s, r) => s + r.total, 0);
+    setKPI('rpt-kpi-sales', fmt(totalSales));
+    setKPI('rpt-kpi-profit', rows.length + ' customers');
+    setKPI('rpt-kpi-expenses', '—');
+    if (thead) thead.innerHTML = '<tr><th>Customer</th><th>Phone</th><th>GST</th><th>Invoices</th><th>Total Sales</th><th>Outstanding</th></tr>';
+    tbody.innerHTML = rows.length ? rows.map(r => {
+      const rec = custMaster.find(c => c.name.toLowerCase() === r.name.toLowerCase());
+      return `<tr><td><strong>${r.name}</strong></td><td style="font-family:monospace">${rec?.phone || ''}</td><td style="font-family:monospace;color:var(--text3)">${rec?.gst || '—'}</td><td>${r.count}</td><td style="font-family:monospace;color:var(--green)">₹${r.total.toLocaleString('en-IN')}</td><td style="font-family:monospace;color:${r.pending > 0 ? 'var(--red)' : 'var(--text3)'}">₹${r.pending.toLocaleString('en-IN')}</td></tr>`;
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">No customer sales in this period.</td></tr>';
+
+  } else if (type === 'Supplier Report') {
+    const purchases = getTable('erp_purchases', []).filter(p => inRange(p.date));
+    const suppMaster = getTable('erp_suppliers', []);
+    const bySupp = {};
+    purchases.forEach(p => {
+      const name = p.supplier || 'Unknown';
+      if (!bySupp[name]) bySupp[name] = { name, total: 0, count: 0 };
+      bySupp[name].total += parseFloat(p.total || 0);
+      bySupp[name].count += 1;
+    });
+    const rows = Object.values(bySupp).sort((a, b) => b.total - a.total);
+    const totalPurch = rows.reduce((s, r) => s + r.total, 0);
+    setKPI('rpt-kpi-sales', fmt(totalPurch));
+    setKPI('rpt-kpi-profit', rows.length + ' suppliers');
+    setKPI('rpt-kpi-expenses', '—');
+    if (thead) thead.innerHTML = '<tr><th>Supplier</th><th>Phone</th><th>GST</th><th>Bills</th><th>Total Purchases</th></tr>';
+    tbody.innerHTML = rows.length ? rows.map(r => {
+      const rec = suppMaster.find(s => s.name.toLowerCase() === r.name.toLowerCase());
+      return `<tr><td><strong>${r.name}</strong></td><td style="font-family:monospace">${rec?.phone || ''}</td><td style="font-family:monospace;color:var(--text3)">${rec?.gst || '—'}</td><td>${r.count}</td><td style="font-family:monospace;color:var(--orange)">₹${r.total.toLocaleString('en-IN')}</td></tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">No purchases from suppliers in this period.</td></tr>';
+
+  } else if (type === 'GST Report') {
+    const txns = getTable('erp_transactions', []).filter(t => t.type === 'Sale' && inRange(t.date));
+    const purchases = getTable('erp_purchases', []).filter(p => inRange(p.date));
+    const gstByRate = {};
+    const addEntry = (rate, total, interstate) => {
+      const taxable = rate > 0 ? total / (1 + rate / 100) : total;
+      const tax = total - taxable;
+      if (!gstByRate[rate]) gstByRate[rate] = { taxable: 0, intraTax: 0, interTax: 0, count: 0 };
+      gstByRate[rate].taxable += taxable;
+      if (interstate) gstByRate[rate].interTax += tax; else gstByRate[rate].intraTax += tax;
+      gstByRate[rate].count++;
+    };
+    purchases.forEach(p => addEntry(parseFloat(p.gst || 0), parseFloat(p.total || p.price || 0), !!p.interstate));
+    txns.forEach(t => addEntry(parseFloat(t.gst || 18), parseFloat(t.amount || 0), !!t.interstate));
+
+    let totalCGST = 0, totalSGST = 0, totalIGST = 0, totalTax = 0;
+    const rows = Object.entries(gstByRate).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).map(([rate, d]) => {
+      const cgst = d.intraTax / 2, sgst = d.intraTax / 2, igst = d.interTax;
+      const tax = d.intraTax + d.interTax;
+      totalCGST += cgst; totalSGST += sgst; totalIGST += igst; totalTax += tax;
+      return { rate: parseFloat(rate) + '%', taxable: d.taxable, cgst, sgst, igst, total: tax, count: d.count };
+    });
+    setKPI('rpt-kpi-sales', fmt(totalTax));
+    setKPI('rpt-kpi-profit', 'CGST ' + fmt(totalCGST));
+    setKPI('rpt-kpi-expenses', 'SGST+IGST ' + fmt(totalSGST + totalIGST));
+    if (thead) thead.innerHTML = '<tr><th>GST Rate</th><th>Taxable Value</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total Tax</th><th>Txns</th></tr>';
+    tbody.innerHTML = rows.length ? rows.map(r => `<tr><td style="font-family:monospace;font-weight:600;color:var(--accent)">${r.rate}</td><td style="font-family:monospace">₹${Math.round(r.taxable).toLocaleString('en-IN')}</td><td style="font-family:monospace;color:var(--accent)">₹${Math.round(r.cgst).toLocaleString('en-IN')}</td><td style="font-family:monospace;color:var(--purple)">₹${Math.round(r.sgst).toLocaleString('en-IN')}</td><td style="font-family:monospace;color:var(--yellow)">₹${Math.round(r.igst).toLocaleString('en-IN')}</td><td style="font-family:monospace;color:var(--green);font-weight:600">₹${Math.round(r.total).toLocaleString('en-IN')}</td><td>${r.count}</td></tr>`).join('')
+      : '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">No GST data in this period.</td></tr>';
+
+  } else if (type === 'Stock Movement') {
+    const moves = [];
+    getTable('erp_purchases', []).filter(p => inRange(p.date)).forEach(p => {
+      moves.push({ date: p.date, type: 'Purchase', product: p.product || '', label: `Purchase – ${p.supplier || ''}`, qty: +(parseInt(p.qty) || 0) });
+    });
+    getTable('erp_transactions', []).filter(t => t.type === 'Sale' && inRange(t.date)).forEach(t => {
+      (t.products || '').split(',').forEach(part => {
+        const m = part.trim().match(/^(.*?)\s*[×x](\d+)/i);
+        if (m) moves.push({ date: t.date, type: 'Sale', product: m[1].trim(), label: `Sale – ${t.invno || ''}`, qty: -parseInt(m[2], 10) });
+      });
+    });
+    getTable('erp_expenses', []).filter(e => e.category === 'Spoilage' && inRange(e.date)).forEach(e => {
+      if (e.product) moves.push({ date: e.date, type: 'Spoilage', product: e.product, label: `Spoilage – ${e.description || e.product}`, qty: -Math.abs(parseInt(e.qty) || 0) });
+    });
+    moves.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const totalIn = moves.filter(m => m.qty > 0).reduce((s, m) => s + m.qty, 0);
+    const totalOut = moves.filter(m => m.qty < 0).reduce((s, m) => s + Math.abs(m.qty), 0);
+    setKPI('rpt-kpi-sales', '+' + totalIn + ' in');
+    setKPI('rpt-kpi-profit', '−' + totalOut + ' out');
+    setKPI('rpt-kpi-expenses', moves.length + ' movements');
+    if (thead) thead.innerHTML = '<tr><th>Date</th><th>Product</th><th>Type</th><th>Reference</th><th>Qty</th></tr>';
+    const typeColors = { Purchase: 'var(--green)', Sale: 'var(--red)', Spoilage: 'var(--orange)' };
+    tbody.innerHTML = moves.length ? moves.map(m => `<tr><td>${m.date}</td><td><strong>${m.product}</strong></td><td style="color:${typeColors[m.type] || 'var(--text3)'}">${m.type}</td><td style="color:var(--text3);font-size:11px">${m.label}</td><td style="font-family:monospace;color:${m.qty > 0 ? 'var(--green)' : 'var(--red)'}">${m.qty > 0 ? '+' : ''}${m.qty}</td></tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">No stock movements in this period.</td></tr>';
+
   } else {
     if (thead) thead.innerHTML = '<tr><th colspan="5" style="color:var(--text3)">Select a report type above</th></tr>';
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Choose Sales, Purchase, Expense, Profit, or Inventory Report.</td></tr>';
@@ -6970,7 +7221,20 @@ function exportReportCSV() {
   const blob = new Blob([rows], { type: 'text/csv' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'report.csv'; a.click();
 }
-function exportReportExcel() { exportReportCSV(); }
+function exportReportExcel() {
+  const table = document.querySelector('#view-reports table');
+  if (!table) { showToast('Generate a report first.', 'warning'); return; }
+  if (!window.XLSX) { showToast('Excel library failed to load — exporting as CSV instead.', 'warning'); exportReportCSV(); return; }
+
+  const type = document.getElementById('rpt-type')?.value || 'Report';
+  // Sheet names can't exceed 31 chars or contain : \ / ? * [ ]
+  const sheetName = type.replace(/[:\\\/?*\[\]]/g, '').slice(0, 31) || 'Report';
+  const wb = XLSX.utils.table_to_book(table, { sheet: sheetName });
+
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  XLSX.writeFile(wb, 'report_' + type.replace(/\s+/g, '_').toLowerCase() + '_' + stamp + '.xlsx');
+  showToast('Excel file exported!', 'success');
+}
 function exportReportPDF() {
   const { jsPDF } = window.jspdf;
   if (!jsPDF) { showToast('PDF library not loaded.', 'warning'); return; }
@@ -7117,6 +7381,9 @@ function showSettingsTab(tabId) {
   document.querySelectorAll('.settings-tabpanel').forEach(p => p.classList.remove('active'));
   document.getElementById('stab-' + tabId)?.classList.add('active');
   document.getElementById('spanel-' + tabId)?.classList.add('active');
+  if (tabId === 'profile') {
+    loadBusinessSettings();
+  }
   if (tabId === 'admin') {
     renderCategoryChips();
     renderSupplierChips();
@@ -7488,28 +7755,99 @@ function renderRecentPurchases() {
 }
 
 // ── EXPENSE TRACKER ────────────────────────────────────────────────────
+
+// Shows/hides the Product + Qty fields used only for Spoilage expenses,
+// and (re)populates the product dropdown from current inventory whenever
+// it's shown.
+function toggleSpoilageFields() {
+  const type = document.getElementById('exp-type')?.value || '';
+  const isSpoilage = type === 'Spoilage';
+  const prodWrap = document.getElementById('exp-spoil-product-wrap');
+  const qtyWrap  = document.getElementById('exp-spoil-qty-wrap');
+  if (prodWrap) prodWrap.style.display = isSpoilage ? '' : 'none';
+  if (qtyWrap)  qtyWrap.style.display  = isSpoilage ? '' : 'none';
+  if (isSpoilage) {
+    const sel = document.getElementById('exp-spoil-product');
+    if (sel) {
+      const inv = getTable('erp_inventory', []);
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">Select product…</option>' +
+        inv.map(p => `<option value="${(p.product||'').replace(/"/g,'&quot;')}">${p.product} (${p.stock||0} in stock)</option>`).join('');
+      if (prev) sel.value = prev;
+    }
+  }
+}
+
+// A spoilage/dead-stock expense is a stock-out event just like a sale —
+// without this, "recording" spoilage never actually removed the dead
+// fish/units from erp_inventory.stock or the batch's qtySpoiled/
+// qtyRemaining, leaving it purely a cosmetic expense line.
+function applySpoilageToStock(productName, qty) {
+  if (!productName || !qty || qty <= 0) return;
+
+  const inv = getTable('erp_inventory', []);
+  const item = inv.find(p => (p.product || '').toLowerCase() === productName.toLowerCase());
+  if (item) {
+    item.stock = Math.max(0, (parseInt(item.stock) || 0) - qty);
+    item.status = item.stock <= 0 ? 'Out' : (item.stock <= (parseInt(item.minStock) || 0) ? 'Low' : 'OK');
+    setTable('erp_inventory', inv);
+    renderInventoryTable();
+  }
+
+  // Draw down FIFO from batches, same convention used for sales, so
+  // qtySpoiled/qtyRemaining per batch stay accurate for perishable stock.
+  const batches = getTable('erp_batches', []);
+  let remainingToDeduct = qty;
+  const productBatches = batches
+    .filter(b => (b.product || '').toLowerCase() === productName.toLowerCase() && (parseInt(b.qtyRemaining) || 0) > 0)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  for (const batch of productBatches) {
+    if (remainingToDeduct <= 0) break;
+    const available = parseInt(batch.qtyRemaining) || 0;
+    const draw = Math.min(available, remainingToDeduct);
+    batch.qtyRemaining = available - draw;
+    batch.qtySpoiled = (parseInt(batch.qtySpoiled) || 0) + draw;
+    remainingToDeduct -= draw;
+  }
+  setTable('erp_batches', batches);
+}
+
 function saveExpense() {
   const type    = document.getElementById('exp-type')?.value || '';
   const date    = document.getElementById('exp-date')?.value || '';
   const amount  = parseFloat(document.getElementById('exp-amount')?.value) || 0;
   const paidTo  = (document.getElementById('exp-paidto')?.value || '').trim();
-  const remarks = (document.getElementById('exp-remarks')?.value || '').trim();
+  let   remarks = (document.getElementById('exp-remarks')?.value || '').trim();
 
   if (!date)       { showToast('Please select a Date.', 'warning'); return; }
   if (amount <= 0) { showToast('Amount must be greater than 0.', 'warning'); return; }
+
+  let spoilProduct = '', spoilQty = 0;
+  if (type === 'Spoilage') {
+    spoilProduct = document.getElementById('exp-spoil-product')?.value || '';
+    spoilQty     = parseInt(document.getElementById('exp-spoil-qty')?.value) || 0;
+    if (!spoilProduct) { showToast('Select which product was spoiled/dead.', 'warning'); return; }
+    if (spoilQty <= 0) { showToast('Enter how many units were spoiled/dead.', 'warning'); return; }
+    if (!remarks) remarks = `${spoilProduct} ×${spoilQty}`;
+  }
 
   const expenses = getTable('erp_expenses', []);
   expenses.unshift({
     id: 'EXP-' + String(expenses.length + 1).padStart(4, '0'),
     date, category: type, description: remarks, amount, paidTo,
     paymethod: 'Cash',
+    ...(type === 'Spoilage' ? { product: spoilProduct, qty: spoilQty } : {}),
     month: new Date(date + 'T00:00:00').toLocaleString('en-IN', { month: 'long', year: 'numeric' }),
     savedAt: new Date().toISOString()
   });
   setTable('erp_expenses', expenses);
+
+  if (type === 'Spoilage') applySpoilageToStock(spoilProduct, spoilQty);
+
   renderExpenseTable();
   resetExpenseForm();
-  showToast('Expense saved! ₹' + amount.toLocaleString('en-IN') + ' — ' + type, 'success');
+  showToast('Expense saved! ₹' + amount.toLocaleString('en-IN') + ' — ' + type +
+    (type === 'Spoilage' ? ` (${spoilQty} unit${spoilQty !== 1 ? 's' : ''} removed from stock)` : ''), 'success');
 }
 
 function resetExpenseForm() {
@@ -7524,6 +7862,11 @@ function resetExpenseForm() {
   if (remEl) remEl.value = '';
   const typeEl = document.getElementById('exp-type');
   if (typeEl) typeEl.selectedIndex = 0;
+  const spoilProdEl = document.getElementById('exp-spoil-product');
+  if (spoilProdEl) spoilProdEl.value = '';
+  const spoilQtyEl = document.getElementById('exp-spoil-qty');
+  if (spoilQtyEl) spoilQtyEl.value = '';
+  toggleSpoilageFields();
 }
 
 function renderExpenseTable() {
